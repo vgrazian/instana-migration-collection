@@ -1,0 +1,18 @@
+---
+- name: Simple Instana Migration Test
+  hosts: localhost
+  connection: local
+  vars:
+    instana_saas_endpoint: "test-saas.instana.io"
+    instana_saas_port: 443
+    instana_saas_key: "test-key"
+    instana_zone: "test-zone"
+
+  tasks:
+    - name: Test role loading
+      debug:
+        msg: "Testing if roles can be loaded"
+
+    - name: Test instana_common role
+      include_role:
+        name: roles/instana_common

@@ -1,0 +1,34 @@
+---
+- name: Test Instana Migration on macOS
+  hosts: localhost
+  connection: local
+  vars:
+    instana_saas_endpoint: "test-saas.instana.io"
+    instana_saas_port: 443
+    instana_saas_key: "test-saas-agent-key-12345"
+    instana_zone: "test-zone"
+
+  tasks:
+    - name: Display test environment
+      debug:
+        msg: "Testing on {{ ansible_os_family }} - {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Test common role
+      include_role:
+        name: roles/instana_common
+
+    - name: Test variable assignment
+      debug:
+        msg: |
+          Config Path: {{ instana_config_path }}
+          Config Dir: {{ instana_config_dir }}
+          Service Name: {{ service_name }}
+          Backup Dir: {{ instana_backup_dir }}
+
+    - name: Test backup role (simulated)
+      debug:
+        msg: "Backup role would run here on a real target"
+
+    - name: Test dual config role (simulated)
+      debug:
+        msg: "Dual config role would run here on a real target"

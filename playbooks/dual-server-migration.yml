@@ -3,6 +3,8 @@
   hosts: instana_agents
   vars_files:
     - vars/instana-vars.yml
+  collections:
+    - instana_migration.collection
 
   roles:
-    - role: instana_migration.collection.instana_dual_config
+    - instana_dual_config

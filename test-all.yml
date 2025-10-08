@@ -1,0 +1,35 @@
+---
+- name: Test Complete Instana Migration
+  hosts: localhost
+  connection: local
+  vars:
+    instana_saas_endpoint: "test-saas.instana.io"
+    instana_saas_port: 443
+    instana_saas_key: "test-saas-agent-key-12345"
+    instana_zone: "test-zone"
+
+  tasks:
+    - name: Display test start
+      debug:
+        msg: "Starting Instana migration test on localhost"
+
+    - name: Run common setup tasks
+      include_role:
+        name: roles/instana_common
+        tasks_from: main
+
+    - name: Run backup role
+      include_role:
+        name: roles/instana_backup
+
+    - name: Run dual config role
+      include_role:
+        name: roles/instana_dual_config
+
+    - name: Run SaaS-only role
+      include_role:
+        name: roles/instana_saas_only
+
+    - name: Display test completion
+      debug:
+        msg: "Instana migration test completed successfully!"

@@ -8,12 +8,21 @@
   debug:
     msg: "Operating System: {{ os_facts.ansible_facts.ansible_os_family }}"
 
-- name: Set OS-specific variables
+- name: Set Windows variables
   set_fact:
-    instana_config_path: "{{ 'C:\\Program Files\\Instana\\Agent' if os_facts.ansible_facts.ansible_os_family == 'Windows' else '/opt/instana/agent' }}"
-    instana_config_dir: "{{ instana_config_path }}\\etc\\instana" if os_facts.ansible_facts.ansible_os_family == 'Windows' else "{{ instana_config_path }}/etc/instana"
-    service_name: "{{ 'InstanaAgent' if os_facts.ansible_facts.ansible_os_family == 'Windows' else 'instana-agent' }}"
-    instana_backup_dir: "{{ 'C:\\Instana\\Backup' if os_facts.ansible_facts.ansible_os_family == 'Windows' else '/opt/instana/backup' }}"
+    instana_config_path: "C:\\Program Files\\Instana\\Agent"
+    instana_config_dir: "{{ instana_config_path }}\\etc\\instana"
+    service_name: "InstanaAgent"
+    instana_backup_dir: "C:\\Instana\\Backup"
+  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+
+- name: Set Linux variables
+  set_fact:
+    instana_config_path: "/opt/instana/agent"
+    instana_config_dir: "{{ instana_config_path }}/etc/instana"
+    service_name: "instana-agent"
+    instana_backup_dir: "/opt/instana/backup"
+  when: os_facts.ansible_facts.ansible_os_family != "Windows"
 
 - name: Display configuration paths
   debug:
