@@ -1,0 +1,63 @@
+---
+- name: Converge - Test Instana Migration
+  hosts: all
+  gather_facts: true
+  become: true
+
+  vars:
+    instana_saas_endpoint: "test-saas.instana.io"
+    instana_saas_port: 443
+    instana_saas_key: "test-saas-agent-key-12345"
+    instana_zone: "test-zone"
+
+  tasks:
+    - name: Include backup role
+      include_role:
+        name: instana_migration.collection.instana_backup
+
+    - name: Include dual configuration role
+      include_role:
+        name: instana_migration.collection.instana_dual_config
+
+    - name: Verify dual configuration was created
+      file:
+        path: "/opt/instana/agent/etc/instana/configuration.yaml"
+        state: file
+      register: saas_config
+
+    - name: Verify on-prem backup was created
+      file:
+        path: "/opt/instana/agent/etc/instana/onprem-configuration.yaml"
+        state: file
+      register: onprem_config
+
+    - name: Verify backup files were created
+      find:
+        paths: "/opt/instana/backup"
+        patterns: "*.backup"
+      register: backup_files
+
+    - name: Include SaaS-only migration
+      include_role:
+        name: instana_migration.collection.instana_saas_only
+
+    - name: Verify on-prem files were removed
+      find:
+        paths: "/opt/instana/agent/etc/instana"
+        patterns: "onprem-*,*.onprem.*"
+      register: remaining_onprem_files
+
+    - name: Assert on-prem files were removed
+      assert:
+        that:
+          - remaining_onprem_files.files | length == 0
+        fail_msg: "On-prem configuration files were not properly removed"
+
+    - name: Display test results
+      debug:
+        msg: |
+          Test Results:
+          - SaaS config created: {{ saas_config.stat.exists | default(false) }}
+          - On-prem backup created: {{ onprem_config.stat.exists | default(false) }}
+          - Backup files: {{ backup_files.files | length }}
+          - Remaining on-prem files: {{ remaining_onprem_files.files | length }}

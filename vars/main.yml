@@ -1,0 +1,7 @@
+---
+# Example variables - copy to vars/instana-vars.yml and customize
+instana_saas_endpoint: "ingress-red-saas.instana.io"
+instana_saas_port: 443
+instana_saas_key: "your-saas-agent-key-here"
+instana_zone: "production"
+instana_backup_retention_days: 30

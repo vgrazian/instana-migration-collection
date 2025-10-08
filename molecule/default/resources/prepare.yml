@@ -1,0 +1,107 @@
+---
+- name: Prepare test instances
+  hosts: all
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages
+      package:
+        name:
+          - python3
+          - systemd
+          - sudo
+          - curl
+        state: present
+
+    - name: Create mock Instana agent directory structure
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+      loop:
+        - "/opt/instana/agent/etc/instana"
+        - "/opt/instana/backup"
+        - "/var/log/instana"
+
+    - name: Create mock Instana configuration files
+      copy:
+        content: |
+          # Mock Instana Agent Configuration
+          com:
+            instana:
+              agent:
+                backend:
+                  endpoint:
+                    host: onprem.instana.local
+                    port: 443
+                key: test-onprem-key-12345
+                zone: onprem-zone
+          tags:
+            environment: test
+            role: application-server
+        dest: "/opt/instana/agent/etc/instana/configuration.yaml"
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Create additional config files
+      copy:
+        content: |
+          # Additional configuration
+          logs:
+            enabled: true
+            level: INFO
+        dest: "/opt/instana/agent/etc/instana/com.instana.agent.yaml"
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Create mock systemd service for Instana agent
+      copy:
+        content: |
+          [Unit]
+          Description=Mock Instana Agent
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/bin/sleep infinity
+          Restart=always
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/instana-agent.service"
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Create mock service script
+      copy:
+        content: |
+          #!/bin/bash
+          echo "Mock Instana Agent"
+          sleep 1
+        dest: "/usr/local/bin/mock-instana-agent"
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Start mock Instana agent service
+      systemd:
+        name: instana-agent
+        state: started
+        enabled: yes

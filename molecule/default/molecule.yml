@@ -1,0 +1,73 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: instana-agent-ubuntu
+    image: geerlingguy/docker-ubuntu2004-ansible:latest
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    privileged: true
+    pre_build_image: true
+    groups:
+      - instana_agents
+      - linux
+      - ubuntu
+
+  - name: instana-agent-centos
+    image: geerlingguy/docker-centos8-ansible:latest
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    privileged: true
+    pre_build_image: true
+    groups:
+      - instana_agents
+      - linux
+      - centos
+
+  - name: instana-agent-debian
+    image: geerlingguy/docker-debian10-ansible:latest
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    privileged: true
+    pre_build_image: true
+    groups:
+      - instana_agents
+      - linux
+      - debian
+
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      interpreter_python: auto_silent
+  inventory:
+    group_vars:
+      instana_agents:
+        # Test variables
+        instana_saas_endpoint: "test-saas.instana.io"
+        instana_saas_port: 443
+        instana_saas_key: "test-saas-agent-key-12345"
+        instana_zone: "test-zone"
+        instana_backup_retention_days: 7
+        instana_agent_timeout: 60
+        
+        # Mock Instana agent directories for testing
+        instana_config_path: "/opt/instana/agent"
+        instana_config_dir: "/opt/instana/agent/etc/instana"
+        service_name: "instana-agent"
+        instana_backup_dir: "/opt/instana/backup"
+
+  playbooks:
+    create: ../resources/create.yml
+    prepare: ../resources/prepare.yml
+    destroy: ../resources/destroy.yml
+
+verifier:
+  name: ansible
+  playbooks:
+    - playbook: ../verify.yml

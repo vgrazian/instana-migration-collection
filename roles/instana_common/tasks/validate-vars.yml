@@ -1,0 +1,18 @@
+---
+- name: Validate required variables
+  fail:
+    msg: "{{ item }} is required but not set"
+  when: item | default('') == ''
+  loop:
+    - instana_saas_endpoint
+    - instana_saas_key
+
+- name: Validate SaaS endpoint format
+  fail:
+    msg: "instana_saas_endpoint should be a hostname without protocol"
+  when: "'http' in instana_saas_endpoint or 'https' in instana_saas_endpoint"
+
+- name: Validate port range
+  fail:
+    msg: "instana_saas_port must be between 1 and 65535"
+  when: instana_saas_port < 1 or instana_saas_port > 65535

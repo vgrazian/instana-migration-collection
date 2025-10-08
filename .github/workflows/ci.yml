@@ -1,0 +1,20 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install Ansible
+        run: pip install ansible
+      - name: Syntax check
+        run: |
+          ansible-playbook --syntax-check playbooks/*.yml
+      - name: Lint
+        run: |
+          ansible-lint playbooks/*.yml roles/*/

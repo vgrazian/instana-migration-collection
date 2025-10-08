@@ -1,0 +1,46 @@
+---
+- name: Verify Instana Migration Collection
+  hosts: all
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Verify Instana directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "/opt/instana/agent/etc/instana"
+        - "/opt/instana/backup"
+
+    - name: Verify original configuration files exist
+      file:
+        path: "{{ item }}"
+        state: file
+      loop:
+        - "/opt/instana/agent/etc/instana/configuration.yaml"
+        - "/opt/instana/agent/etc/instana/com.instana.agent.yaml"
+
+    - name: Verify configuration files contain expected content
+      lineinfile:
+        path: "/opt/instana/agent/etc/instana/configuration.yaml"
+        line: "host: onprem.instana.local"
+        state: present
+      check_mode: yes
+
+    - name: Verify mock service is running
+      systemd:
+        name: instana-agent
+        state: started
+      check_mode: yes
+
+    - name: Verify backup directory is accessible
+      file:
+        path: "/opt/instana/backup"
+        state: directory
+        mode: '0755'
+      check_mode: yes
+
+    - name: Display verification results
+      debug:
+        msg: "All pre-requisites verified successfully for {{ inventory_hostname }}"

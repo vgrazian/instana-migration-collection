@@ -1,0 +1,39 @@
+---
+- name: Rollback Instana migration
+  hosts: instana_agents
+  vars_files:
+    - vars/instana-vars.yml
+
+  tasks:
+    - name: Include common setup
+      include_role:
+        name: instana_migration.collection.instana_common
+        tasks_from: main
+
+    - name: Find backup files
+      find:
+        paths: "{{ instana_backup_dir }}"
+        patterns: "*.backup"
+        file_type: file
+      register: backup_files
+      when: os_facts.ansible_facts.ansible_os_family != "Windows"
+
+    - name: Find backup files (Windows)
+      win_find:
+        paths: "{{ instana_backup_dir }}"
+        patterns: "*.backup"
+      register: backup_files_windows
+      when: os_facts.ansible_facts.ansible_os_family == "Windows"
+
+    - name: Restore configuration from backup
+      copy:
+        src: "{{ item.path }}"
+        dest: "{{ instana_config_dir }}/{{ item.path | basename | regex_replace('\\.backup$', '') }}"
+        remote_src: yes
+        backup: yes
+      loop: "{{ (backup_files.files if os_facts.ansible_facts.ansible_os_family != 'Windows' else backup_files_windows.files) | default([]) }}"
+      when: os_facts.ansible_facts.ansible_os_family != "Windows"
+      notify: restart instana agent
+
+    - name: Restart Instana agent
+      meta: flush_handlers

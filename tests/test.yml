@@ -5,5 +5,26 @@
 
   tasks:
     - name: Check collection structure
-      debug:
-        msg: "Collection structure is valid"
+      assert:
+        that:
+          - lookup('file', 'galaxy.yml') | length > 0
+          - lookup('file', 'README.md') | length > 0
+          - lookup('file', 'LICENSE') | length > 0
+
+    - name: Validate playbooks syntax
+      command: "ansible-playbook --syntax-check {{ item }}"
+      loop:
+        - "playbooks/backup-instana-config.yml"
+        - "playbooks/dual-server-migration.yml"
+        - "playbooks/saas-only-migration.yml"
+
+    - name: Check role structure
+      find:
+        paths: "roles/"
+        file_type: directory
+      register: roles_list
+
+    - name: Verify all roles have tasks
+      assert:
+        that: "item ~ '/tasks/main.yml' is file"
+      loop: "{{ roles_list.files | map(attribute='path') | list }}"

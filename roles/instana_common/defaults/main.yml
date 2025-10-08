@@ -1,0 +1,15 @@
+---
+# Default variables for Instana migration
+instana_saas_endpoint: ""
+instana_saas_port: 443
+instana_saas_key: ""
+instana_zone: ""
+instana_backup_retention_days: 30
+instana_agent_timeout: 300
+instana_verify_ssl: true
+
+# Platform-specific paths (will be overridden by tasks)
+instana_config_path: ""
+instana_config_dir: ""
+service_name: ""
+instana_backup_dir: ""

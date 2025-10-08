@@ -1,0 +1,10 @@
+---
+- name: Create test environment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Log creation start
+      debug:
+        msg: "Creating Molecule test instances"
