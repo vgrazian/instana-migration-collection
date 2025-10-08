@@ -1,0 +1,65 @@
+---
+- name: Display backup operation start
+  debug:
+    msg: "Starting Instana configuration backup process"
+
+- name: Include common setup
+  include_role:
+    name: instana_migration.collection.instana_common
+    tasks_from: main
+
+- name: Include agent check
+  include_role:
+    name: instana_migration.collection.instana_common
+    tasks_from: check-agent
+
+- name: Set config patterns for backup
+  set_fact:
+    config_patterns: "*.yaml,*.yml,*.properties,*.conf"
+
+- name: Find configuration files
+  include_role:
+    name: instana_migration.collection.instana_common
+    tasks_from: find-configs
+
+- name: Create backup directory
+  win_file:
+    path: "{{ instana_backup_dir }}"
+    state: directory
+  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+
+- name: Create backup directory (Linux)
+  file:
+    path: "{{ instana_backup_dir }}"
+    state: directory
+    mode: '0755'
+  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  become: yes
+
+- name: Backup Instana configuration files (Windows)
+  win_copy:
+    src: "{{ item.path }}"
+    dest: "{{ instana_backup_dir }}\\{{ item.path | basename }}.backup"
+    remote_src: yes
+    backup: yes
+  loop: "{{ config_files }}"
+  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+
+- name: Backup Instana configuration files (Linux)
+  copy:
+    src: "{{ item.path }}"
+    dest: "{{ instana_backup_dir }}/{{ item.path | basename }}.backup"
+    remote_src: yes
+    backup: yes
+  loop: "{{ config_files }}"
+  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  become: yes
+
+- name: Display backup completion summary
+  debug:
+    msg: |
+      ===== BACKUP COMPLETED SUCCESSFULLY =====
+      Backup location: {{ instana_backup_dir }}
+      OS: {{ ansible_os_family }}
+      Total files backed up: {{ config_files | length }}
+      =========================================

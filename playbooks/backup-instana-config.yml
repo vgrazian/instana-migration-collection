@@ -1,0 +1,8 @@
+---
+- name: Backup Instana on-prem configuration
+  hosts: instana_agents
+  vars_files:
+    - vars/instana-vars.yml
+
+  roles:
+    - role: instana_migration.collection.instana_backup

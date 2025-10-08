@@ -1,0 +1,28 @@
+---
+- name: Wait for agent to start up
+  pause:
+    seconds: 10
+  async: 45
+  poll: 0
+
+- name: Verify Instana agent is running
+  win_service:
+    name: "{{ service_name }}"
+    state: started
+  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+  register: service_status_windows
+
+- name: Verify Instana agent is running (Linux)
+  systemd:
+    name: "{{ service_name }}"
+    state: started
+  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  register: service_status_linux
+  become: yes
+
+- name: Display service status
+  debug:
+    msg: |
+      Service status:
+      Windows: {{ service_status_windows.state | default('N/A') }}
+      Linux: {{ service_status_linux.state | default('N/A') }}

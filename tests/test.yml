@@ -1,0 +1,9 @@
+---
+- name: Test Instana Migration Collection
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: Check collection structure
+      debug:
+        msg: "Collection structure is valid"

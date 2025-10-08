@@ -1,0 +1,28 @@
+---
+namespace: instana_migration
+name: collection
+version: 1.0.0
+readme: README.md
+authors:
+  - Your Team <team@example.com>
+description: Ansible collection for Instana agent dual-server migration
+license:
+  - MIT
+tags:
+  - instana
+  - monitoring
+  - migration
+  - saas
+  - backup
+  - configuration
+dependencies: {}
+repository: https://github.com/your-org/instana-migration-collection
+documentation: https://github.com/your-org/instana-migration-collection
+homepage: https://github.com/your-org/instana-migration-collection
+issues: https://github.com/your-org/instana-migration-collection/issues
+
+build_ignore:
+  - .gitignore
+  - .github/
+  - tests/
+  - "*.retry"

@@ -1,0 +1,21 @@
+---
+- name: Check if Instana agent is installed
+  win_stat:
+    path: "{{ instana_config_path }}"
+  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+  register: instana_agent_dir_windows
+
+- name: Check if Instana agent is installed (Linux)
+  stat:
+    path: "{{ instana_config_path }}"
+  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  register: instana_agent_dir_linux
+
+- name: Display agent installation status
+  debug:
+    msg: "Instana agent installation check - Windows: {{ instana_agent_dir_windows.stat.exists | default('N/A') }}, Linux: {{ instana_agent_dir_linux.stat.exists | default('N/A') }}"
+
+- name: Fail if Instana agent is not installed
+  fail:
+    msg: "Instana agent not found at {{ instana_config_path }}"
+  when: (os_facts.ansible_facts.ansible_os_family == "Windows" and not instana_agent_dir_windows.stat.exists) or (os_facts.ansible_facts.ansible_os_family != "Windows" and not instana_agent_dir_linux.stat.exists)

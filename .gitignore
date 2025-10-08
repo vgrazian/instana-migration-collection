@@ -1,0 +1,18 @@
+# Ansible
+*.retry
+*.swp
+
+# Collection build
+*.tar.gz
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+.tmp/

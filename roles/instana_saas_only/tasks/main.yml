@@ -1,0 +1,101 @@
+---
+- name: Display SaaS-only migration start
+  debug:
+    msg: "Starting SaaS-only migration process"
+
+- name: Include common setup
+  include_role:
+    name: instana_migration.collection.instana_common
+    tasks_from: main
+
+- name: Include agent check
+  include_role:
+    name: instana_migration.collection.instana_common
+    tasks_from: check-agent
+
+- name: Set config patterns for on-prem files
+  set_fact:
+    config_patterns: "onprem-*.yaml,onprem-*.yml,*.onprem.yaml,*.onprem.yml"
+
+- name: Find configuration files
+  include_role:
+    name: instana_migration.collection.instana_common
+    tasks_from: find-configs
+
+- name: Set on-prem files fact
+  set_fact:
+    onprem_config_files: "{{ config_files }}"
+
+- name: Verify SaaS configuration file exists
+  win_stat:
+    path: "{{ instana_config_dir }}\\configuration.yaml"
+  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+  register: saas_config_windows
+
+- name: Verify SaaS configuration file exists (Linux)
+  stat:
+    path: "{{ instana_config_dir }}/configuration.yaml"
+  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  register: saas_config_linux
+
+- name: Set SaaS config fact
+  set_fact:
+    saas_config_exists: "{{ (saas_config_windows.stat.exists if os_facts.ansible_facts.ansible_os_family == 'Windows' else saas_config_linux.stat.exists) | default(false) }}"
+    saas_config_path: "{{ instana_config_dir }}\\configuration.yaml" if os_facts.ansible_facts.ansible_os_family == 'Windows' else "{{ instana_config_dir }}/configuration.yaml"
+
+- name: Display SaaS configuration check result
+  debug:
+    msg: "SaaS configuration file exists: {{ saas_config_exists }} at {{ saas_config_path }}"
+
+- name: Fail if SaaS configuration doesn't exist
+  fail:
+    msg: "SaaS configuration file not found at {{ saas_config_path }}. Run dual-server migration first."
+  when: not saas_config_exists
+
+- name: Display migration summary
+  debug:
+    msg: |
+      ===== SAAS-ONLY MIGRATION STARTING =====
+      On-prem files to remove: {{ onprem_config_files | length }}
+      SaaS config: {{ saas_config_path }}
+      Service: {{ service_name }}
+      =======================================
+
+- name: Remove on-prem configuration files (Windows)
+  win_file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ onprem_config_files }}"
+  when: 
+    - os_facts.ansible_facts.ansible_os_family == "Windows"
+    - onprem_config_files | length > 0
+  register: removed_files_windows
+
+- name: Remove on-prem configuration files (Linux)
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ onprem_config_files }}"
+  when: 
+    - os_facts.ansible_facts.ansible_os_family != "Windows"
+    - onprem_config_files | length > 0
+  register: removed_files_linux
+  become: yes
+
+- name: Include agent restart
+  include_role:
+    name: instana_migration.collection.instana_common
+    tasks_from: restart-agent
+
+- name: Include agent verification
+  include_role:
+    name: instana_migration.collection.instana_common
+    tasks_from: verify-agent
+
+- name: Display SaaS-only migration completion summary
+  debug:
+    msg: |
+      ===== SAAS-ONLY MIGRATION COMPLETED SUCCESSFULLY =====
+      Removed on-prem files: {{ onprem_config_files | length }}
+      Agent is now configured for SaaS-only operation
+      ====================================================

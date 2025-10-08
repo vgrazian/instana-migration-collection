@@ -1,0 +1,19 @@
+---
+- name: Restart Instana agent
+  win_service:
+    name: "{{ service_name }}"
+    state: restarted
+  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+  register: service_restart_windows
+
+- name: Restart Instana agent (Linux)
+  systemd:
+    name: "{{ service_name }}"
+    state: restarted
+  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  register: service_restart_linux
+  become: yes
+
+- name: Display service restart status
+  debug:
+    msg: "Instana agent service restarted successfully"

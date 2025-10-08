@@ -1,0 +1,8 @@
+---
+- name: Configure Instana agent for dual-server setup
+  hosts: instana_agents
+  vars_files:
+    - vars/instana-vars.yml
+
+  roles:
+    - role: instana_migration.collection.instana_dual_config

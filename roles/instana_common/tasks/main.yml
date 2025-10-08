@@ -1,0 +1,24 @@
+---
+- name: Detect OS platform
+  setup:
+    filter: ansible_os_family
+  register: os_facts
+
+- name: Display OS information
+  debug:
+    msg: "Operating System: {{ os_facts.ansible_facts.ansible_os_family }}"
+
+- name: Set OS-specific variables
+  set_fact:
+    instana_config_path: "{{ 'C:\\Program Files\\Instana\\Agent' if os_facts.ansible_facts.ansible_os_family == 'Windows' else '/opt/instana/agent' }}"
+    instana_config_dir: "{{ instana_config_path }}\\etc\\instana" if os_facts.ansible_facts.ansible_os_family == 'Windows' else "{{ instana_config_path }}/etc/instana"
+    service_name: "{{ 'InstanaAgent' if os_facts.ansible_facts.ansible_os_family == 'Windows' else 'instana-agent' }}"
+    instana_backup_dir: "{{ 'C:\\Instana\\Backup' if os_facts.ansible_facts.ansible_os_family == 'Windows' else '/opt/instana/backup' }}"
+
+- name: Display configuration paths
+  debug:
+    msg: |
+      Instana config path: {{ instana_config_path }}
+      Config directory: {{ instana_config_dir }}
+      Service name: {{ service_name }}
+      Backup directory: {{ instana_backup_dir }}
