@@ -1,37 +1,4 @@
-- name: Set backup directory with timestamp
-  set_fact:
-    instana_backup_dir: "{{ instana_backup_dir }}/backup-{{ ansible_date_time.epoch }}"
-  
-- name: Create backup manifest
-  copy:
-    content: |
-      Backup created: {{ ansible_date_time.iso8601 }}
-      Host: {{ ansible_hostname }}
-      OS: {{ ansible_os_family }}
-      Files backed up:
-      {% for file in config_files %}
-        - {{ file.path }}
-      {% endfor %}
-    dest: "{{ instana_backup_dir }}/backup-manifest.txt"
-    mode: '0644'
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
-
-- name: Clean up old backups
-  find:
-    paths: "{{ instana_backup_dir | dirname }}"
-    patterns: "backup-*"
-    file_type: directory
-    age: "{{ instana_backup_retention_days }}d"
-  register: old_backups
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
-
-- name: Remove old backup directories
-  file:
-    path: "{{ item.path }}"
-    state: absent
-  loop: "{{ old_backups.files }}"
-  when: old_backups.files | length > 0
-  
+---
 - name: Display backup operation start
   debug:
     msg: "Starting Instana configuration backup process"
@@ -59,14 +26,14 @@
   win_file:
     path: "{{ instana_backup_dir }}"
     state: directory
-  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+  when: "os_facts.ansible_facts.ansible_os_family == 'Windows'"
 
 - name: Create backup directory (Linux)
   file:
     path: "{{ instana_backup_dir }}"
     state: directory
     mode: '0755'
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  when: "os_facts.ansible_facts.ansible_os_family != 'Windows'"
   become: yes
 
 - name: Backup Instana configuration files (Windows)
@@ -76,7 +43,7 @@
     remote_src: yes
     backup: yes
   loop: "{{ config_files }}"
-  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+  when: "os_facts.ansible_facts.ansible_os_family == 'Windows'"
 
 - name: Backup Instana configuration files (Linux)
   copy:
@@ -85,7 +52,7 @@
     remote_src: yes
     backup: yes
   loop: "{{ config_files }}"
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  when: "os_facts.ansible_facts.ansible_os_family != 'Windows'"
   become: yes
 
 - name: Display backup completion summary

@@ -4,7 +4,7 @@
     paths: "{{ instana_config_dir }}"
     patterns: "{{ config_patterns | default('*.yaml,*.yml,*.properties,*.conf') }}"
     recurse: yes
-  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+  when: "os_facts.ansible_facts.ansible_os_family == 'Windows'"
   register: config_files_windows
 
 - name: Find Instana configuration files (Linux)
@@ -13,7 +13,7 @@
     patterns: "{{ config_patterns | default('*.yaml,*.yml,*.properties,*.conf') }}"
     file_type: file
     recurse: yes
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  when: "os_facts.ansible_facts.ansible_os_family != 'Windows'"
   register: config_files_linux
 
 - name: Set config files fact

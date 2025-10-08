@@ -1,195 +1,26 @@
----
-- name: Display dual-server migration start
-  debug:
-    msg: "Starting Instana dual-server migration process"
+# Look for these patterns and fix them:
 
-- name: Include common setup
-  include_role:
-    name: instana_migration.collection.instana_common
-    tasks_from: main
+# Fix conditionals - always quote when statements
+when: "os_facts.ansible_facts.ansible_os_family == 'Windows'"
 
-- name: Include agent check
-  include_role:
-    name: instana_migration.collection.instana_common
-    tasks_from: check-agent
+# Fix complex when conditions - use YAML block syntax or quotes
+when: >
+  saas_config is defined and
+  saas_config.com is defined and
+  saas_config.com.instana is defined and
+  saas_config.com.instana.agent is defined and
+  saas_config.com.instana.agent.backend is defined
 
-- name: Set config patterns for primary config
-  set_fact:
-    config_patterns: "configuration.yaml,configuration.yml,com.instana.agent.yaml,com.instana.agent.yml"
+# OR use list format for complex conditions
+when:
+  - saas_config is defined
+  - saas_config.com is defined
+  - saas_config.com.instana is defined
+  - saas_config.com.instana.agent is defined
+  - saas_config.com.instana.agent.backend is defined
 
-- name: Find configuration files
-  include_role:
-    name: instana_migration.collection.instana_common
-    tasks_from: find-configs
+# Fix Windows paths - ensure double backslashes
+dest: "{{ instana_config_dir }}\\{{ config_file_name | replace('.yaml', '.onprem.yaml') | replace('.yml', '.onprem.yml') }}"
 
-- name: Display SaaS configuration parameters
-  debug:
-    msg: |
-      SaaS Configuration:
-      Endpoint: {{ instana_saas_endpoint }}
-      Port: {{ instana_saas_port }}
-      Zone: {{ instana_zone | default('Not specified') }}
-
-- name: Determine primary configuration file
-  set_fact:
-    primary_config_file: "{{ config_files | map(attribute='path') | list | first }}"
-    config_files_exist: "{{ config_files | length > 0 }}"
-
-- name: Display selected primary configuration file
-  debug:
-    msg: "Primary configuration file selected: {{ primary_config_file }}"
-
-- name: Fail if no configuration files found
-  fail:
-    msg: "No Instana configuration files found in {{ instana_config_dir }}"
-  when: not config_files_exist
-
-- name: Read current configuration file (Windows)
-  win_slurp:
-    src: "{{ primary_config_file }}"
-  when: os_facts.ansible_facts.ansible_os_family == "Windows"
-  register: current_config_content_windows
-
-- name: Read current configuration file (Linux)
-  slurp:
-    src: "{{ primary_config_file }}"
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
-  register: current_config_content_linux
-
-- name: Decode configuration content
-  set_fact:
-    current_config_content: "{{ (current_config_content_windows.content | b64decode) if os_facts.ansible_facts.ansible_os_family == 'Windows' else (current_config_content_linux.content | b64decode) }}"
-    config_file_name: "{{ primary_config_file | basename }}"
-
-- name: Parse YAML configuration
-  set_fact:
-    current_config: "{{ current_config_content | from_yaml }}"
-  when: current_config_content is defined
-
-- name: Create SaaS configuration from existing settings
-  set_fact:
-    saas_config: "{{ current_config }}"
-
-- name: Update backend endpoint for SaaS
-  set_fact:
-    saas_config: "{{ saas_config | combine({'com': saas_config.com | combine({'instana': saas_config.com.instana | combine({'agent': saas_config.com.instana.agent | combine({'backend': saas_config.com.instana.agent.backend | combine({'endpoint': {'host': instana_saas_endpoint, 'port': instana_saas_port}})}})})}) }) }}"
-  when: 
-    - saas_config is defined
-    - saas_config.com is defined
-    - saas_config.com.instana is defined
-    - saas_config.com.instana.agent is defined
-    - saas_config.com.instana.agent.backend is defined
-
-- name: Update agent key for SaaS
-  set_fact:
-    saas_config: "{{ saas_config | combine({'com': saas_config.com | combine({'instana': saas_config.com.instana | combine({'agent': saas_config.com.instana.agent | combine({'key': instana_saas_key})}})}) }) }}"
-  when: 
-    - saas_config is defined
-    - saas_config.com is defined
-    - saas_config.com.instana is defined
-    - saas_config.com.instana.agent is defined
-
-- name: Update zone if specified
-  set_fact:
-    saas_config: "{{ saas_config | combine({'com': saas_config.com | combine({'instana': saas_config.com.instana | combine({'agent': saas_config.com.instana.agent | combine({'zone': instana_zone})}})}) }) }}"
-  when: 
-    - saas_config is defined
-    - saas_config.com is defined
-    - saas_config.com.instana is defined
-    - saas_config.com.instana.agent is defined
-    - instana_zone | default('') != ''
-
-- name: Update simple backend configuration structure
-  set_fact:
-    saas_config: "{{ saas_config | combine({'backend': saas_config.backend | combine({'endpoint': {'host': instana_saas_endpoint, 'port': instana_saas_port}})}) }}"
-  when: 
-    - saas_config is defined
-    - saas_config.backend is defined
-    - saas_config.com is not defined
-
-- name: Update simple agent key configuration
-  set_fact:
-    saas_config: "{{ saas_config | combine({'agent': saas_config.agent | combine({'key': instana_saas_key})}) }}"
-  when: 
-    - saas_config is defined
-    - saas_config.agent is defined
-    - saas_config.com is not defined
-
-- name: Rename existing on-prem configuration file
-  win_copy:
-    src: "{{ primary_config_file }}"
-    dest: "{{ instana_config_dir }}\\{{ config_file_name | replace('.yaml', '.onprem.yaml') | replace('.yml', '.onprem.yml') }}"
-    remote_src: yes
-    backup: yes
-  when: os_facts.ansible_facts.ansible_os_family == "Windows"
-
-- name: Rename existing on-prem configuration file (Linux)
-  copy:
-    src: "{{ primary_config_file }}"
-    dest: "{{ instana_config_dir }}/{{ config_file_name | replace('.yaml', '.onprem.yaml') | replace('.yml', '.onprem.yml') }}"
-    remote_src: yes
-    backup: yes
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
-  become: yes
-
-- name: Remove original configuration file (Windows)
-  win_file:
-    path: "{{ primary_config_file }}"
-    state: absent
-  when: os_facts.ansible_facts.ansible_os_family == "Windows"
-
-- name: Remove original configuration file (Linux)
-  file:
-    path: "{{ primary_config_file }}"
-    state: absent
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
-  become: yes
-
-- name: Create SaaS configuration file (Windows)
-  win_copy:
-    content: "{{ saas_config | to_nice_yaml }}"
-    dest: "{{ instana_config_dir }}\\{{ config_file_name }}"
-    encoding: utf-8
-  when: os_facts.ansible_facts.ansible_os_family == "Windows"
-
-- name: Create SaaS configuration file (Linux)
-  copy:
-    content: "{{ saas_config | to_nice_yaml }}"
-    dest: "{{ instana_config_dir }}/{{ config_file_name }}"
-    mode: '0644'
-    encoding: utf-8
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
-  become: yes
-
-- name: Create on-prem configuration file with new name (Windows)
-  win_copy:
-    src: "{{ instana_config_dir }}\\{{ config_file_name | replace('.yaml', '.onprem.yaml') | replace('.yml', '.onprem.yml') }}"
-    dest: "{{ instana_config_dir }}\\onprem-{{ config_file_name }}"
-    remote_src: yes
-  when: os_facts.ansible_facts.ansible_os_family == "Windows"
-
-- name: Create on-prem configuration file with new name (Linux)
-  copy:
-    src: "{{ instana_config_dir }}/{{ config_file_name | replace('.yaml', '.onprem.yaml') | replace('.yml', '.onprem.yml') }}"
-    dest: "{{ instana_config_dir }}/onprem-{{ config_file_name }}"
-    remote_src: yes
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
-  become: yes
-
-- name: Include agent restart
-  include_role:
-    name: instana_migration.collection.instana_common
-    tasks_from: restart-agent
-
-- name: Include agent verification
-  include_role:
-    name: instana_migration.collection.instana_common
-    tasks_from: verify-agent
-
-- name: Display dual-server configuration summary
-  debug:
-    msg: |
-      ===== DUAL-SERVER CONFIGURATION COMPLETED =====
-      SaaS endpoint: {{ instana_saas_endpoint }}:{{ instana_saas_port }}
-      All custom settings preserved from original configuration
-      ================================================
+# Fix Linux paths - use forward slashes
+dest: "{{ instana_config_dir }}/{{ config_file_name | replace('.yaml', '.onprem.yaml') | replace('.yml', '.onprem.yml') }}"
