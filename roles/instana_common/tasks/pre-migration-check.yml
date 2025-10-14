@@ -2,12 +2,12 @@
 - name: Check disk space
   win_shell: "Get-PSDrive C | Select-Object Free"
   register: disk_space_windows
-  when: os_facts.ansible_facts.ansible_os_family == "Windows"
+  when: "os_facts.ansible_facts.ansible_os_family == 'Windows'"
 
 - name: Check disk space (Linux)
   shell: "df /opt | tail -1"
   register: disk_space_linux
-  when: os_facts.ansible_facts.ansible_os_family != "Windows"
+  when: "os_facts.ansible_facts.ansible_os_family != 'Windows'""
 
 - name: Verify network connectivity to SaaS endpoint
   wait_for:
